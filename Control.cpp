@@ -41,23 +41,32 @@ float PID::step(float x_mess, float x_goal) {
          + xdot * paramSet->parameters[idD] + state * paramSet->parameters[idI];
 }
 
-Integrator::Integrator(){
-   state = 0;
-}
-
-void Integrator::setPointer(SystemState *_system){
-  system = _system;
-}
-
-void Integrator::reset(){
+// --------------------------------------------------------------------------------------------------------------
+Integrator::Integrator() {
   state = 0;
 }
 
-void Integrator::reset(float x){
+void Integrator::setPointer(SystemState* _system) {
+  system = _system;
+}
+
+void Integrator::reset() {
+  state = 0;
+}
+
+void Integrator::reset(float x) {
   state = x;
 }
 
-float Integrator::step(float xdot){
+float Integrator::step(float xdot) {
   state += xdot * (system->CycleTime) / 1000.0;
   return state;
 }
+
+float Integrator::step(float xdot, float min, float max) {
+  state += xdot * (system->CycleTime) / 1000.0;
+  state = limit(state, min, max);
+  return state;
+}
+
+// --------------------------------------------------------------------------------------------------------------

@@ -100,7 +100,7 @@ void WiFiHandler::sendTelemetry() {
     cycleCount++;
     if (cycleCount > paramSet->parameters[PARAM_SYSTEM_UPDATECYCLE]) {
       uint8_t outBuffer[21];
-      int16_t aAttitude[] = {telemetry->Attitude->x*160,telemetry->Attitude->y*160,telemetry->Attitude->z*160};
+      int16_t aAttitude[] = {telemetry->Attitude->x*160,telemetry->Attitude->y*160,telemetry->Attitude->w*160};
       uint16_t aMotor[] = {telemetry->MotorTimes->fl,telemetry->MotorTimes->fr,telemetry->MotorTimes->bl,telemetry->MotorTimes->br};
       outBuffer[MSG_STRUCTURE_HEADER] = MSG_TYPE_TELEMETRY;
       outBuffer[MSG_TELEMETRY_CYCLETIME] = *(telemetry->CycleTime);

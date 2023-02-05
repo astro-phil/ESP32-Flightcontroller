@@ -23,7 +23,7 @@ typedef struct {
 } IMotor4;
 
 typedef struct {
-  FVector3 Attitude;
+  FVector4 Attitude;
   FVector3 AngularVelocity;
   uint16_t Altitude;
   uint16_t Voltage; 
@@ -45,11 +45,11 @@ typedef struct {
   FVector3 AngularVelocity;
   FVector3 Angle;
   bool arm; 
-  uint16_t altitude;
+  uint16_t Altitude;
 } InputState;
 
 typedef struct {
-  FVector3 *Attitude;
+  FVector4 *Attitude;
   uint16_t *Altitude;
   IMotor4 *MotorTimes;
   uint16_t *CycleTime;
