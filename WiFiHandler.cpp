@@ -99,18 +99,27 @@ void WiFiHandler::sendTelemetry() {
   if (connected && runTelemetry) {
     cycleCount++;
     if (cycleCount > paramSet->parameters[PARAM_SYSTEM_UPDATECYCLE]) {
-      uint8_t outBuffer[21];
+      uint8_t outBuffer[27];
+      uint8_t messageIndex = 0;
       int16_t aAttitude[] = {telemetry->Attitude->x*160,telemetry->Attitude->y*160,telemetry->Attitude->w*160};
+      int16_t aTargetAttitude[] = {telemetry->TargetAttitude->x*160,telemetry->TargetAttitude->y*160,telemetry->TargetAttitude->z*160};
       uint16_t aMotor[] = {telemetry->MotorTimes->fl,telemetry->MotorTimes->fr,telemetry->MotorTimes->bl,telemetry->MotorTimes->br};
       outBuffer[MSG_STRUCTURE_HEADER] = MSG_TYPE_TELEMETRY;
       outBuffer[MSG_TELEMETRY_CYCLETIME] = *(telemetry->CycleTime);
       outBuffer[MSG_TELEMETRY_ARMED] = *(telemetry->armed);
-      memcpy(outBuffer + 3, aAttitude , SIZE_OF_INT16 * 3);
-      memcpy(outBuffer + 3 + 3 * SIZE_OF_INT16, aMotor , SIZE_OF_INT16 * 4);
-      memcpy(outBuffer + 3 + 7 * SIZE_OF_INT16, telemetry->Altitude, SIZE_OF_INT16);
-      memcpy(outBuffer + 3 + 8 * SIZE_OF_INT16, telemetry->Voltage, SIZE_OF_INT16);
+      messageIndex += 3;
+      memcpy(outBuffer + messageIndex, aAttitude , SIZE_OF_INT16 * 3);
+      messageIndex +=  SIZE_OF_INT16 * 3;
+      memcpy(outBuffer + messageIndex, aMotor , SIZE_OF_INT16 * 4);
+      messageIndex +=  SIZE_OF_INT16 * 4;
+      memcpy(outBuffer + messageIndex, telemetry->Altitude, SIZE_OF_INT16);
+      messageIndex +=  SIZE_OF_INT16;
+      memcpy(outBuffer + messageIndex, telemetry->Voltage, SIZE_OF_INT16);
+      messageIndex +=  SIZE_OF_INT16;
+      memcpy(outBuffer + messageIndex, aTargetAttitude , SIZE_OF_INT16 * 3);
+      messageIndex +=  SIZE_OF_INT16 * 3;
       udp->beginPacket(remoteIP, remotePort);
-      udp->write(outBuffer, 21);
+      udp->write(outBuffer, 27);
       udp->endPacket();
       cycleCount = 1;
     }

@@ -107,7 +107,7 @@ void setup() {
 void WifiLoop(void *pvParameters) {
   (void)pvParameters;
   setParameterDefaults(&paramSet, usedIndex);
-  setTelemetryPointer(&telemetry, &sensorStt, &motorStt, &systemStt);
+  setTelemetryPointer(&telemetry, &sensorStt, &motorStt, &systemStt, &inputStt);
   wifi.setPointer(&paramSet, &telemetry, &control, &systemStt);
   for (;;) {
     if (!wifi.recieve()) {

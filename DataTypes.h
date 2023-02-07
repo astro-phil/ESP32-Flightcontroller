@@ -50,6 +50,7 @@ typedef struct {
 
 typedef struct {
   FVector4 *Attitude;
+  FVector3 *TargetAttitude;
   uint16_t *Altitude;
   IMotor4 *MotorTimes;
   uint16_t *CycleTime;

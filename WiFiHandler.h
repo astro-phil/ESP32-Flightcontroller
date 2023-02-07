@@ -59,8 +59,9 @@ private:
   int lastRecvTime = 0;
 };
 
-static void setTelemetryPointer(MsgTelemetry *_telemetry, SersorState *_sensor , MotorState *_motor, SystemState * _system) {
+static void setTelemetryPointer(MsgTelemetry *_telemetry, SersorState *_sensor , MotorState *_motor, SystemState * _system, InputState * _input) {
   _telemetry->Attitude = &(_sensor->Attitude);
+  _telemetry->TargetAttitude = &(_input->Angle);
   _telemetry->Altitude = &(_sensor->Altitude);
   _telemetry->CycleTime = &(_system->CycleTime);
   _telemetry->MotorTimes = &(_motor->MotorTimes);
