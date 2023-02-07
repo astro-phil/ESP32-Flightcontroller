@@ -48,9 +48,9 @@ static void setParameterDefaults(ParameterSet* _paramSet, uint8_t* _usedIndex) {
   _paramSet->parameters[PARAM_SYSTEM_UPDATECYCLE] = 3;
   _paramSet->parameters[PARAM_FILTER_ALTITUDE] = 5;
   _paramSet->parameters[PARAM_FILTER_VOLTAGE] = 10;
-  _paramSet->parameters[PARAM_USER_THROTTLE_SENSE] = 0.7;
-  _paramSet->parameters[PARAM_USER_ROLLPITCH_SENSE] = 200;
-  _paramSet->parameters[PARAM_USER_YAW_SENSE] = 200;
+  _paramSet->parameters[PARAM_USER_THROTTLE_SENSE] = 0.8;
+  _paramSet->parameters[PARAM_USER_ROLLPITCH_SENSE] = 150;
+  _paramSet->parameters[PARAM_USER_YAW_SENSE] = 150;
   _paramSet->parameters[PARAM_PID_Y_P] = 0.2;
   _paramSet->parameters[PARAM_PID_Y_I] = 0.1;
   _paramSet->parameters[PARAM_PID_Y_D] = 0.001;
@@ -59,8 +59,8 @@ static void setParameterDefaults(ParameterSet* _paramSet, uint8_t* _usedIndex) {
   _paramSet->parameters[PARAM_PID_YDOT_I] = 0.1;
   _paramSet->parameters[PARAM_PID_YDOT_D] = 0.0;
   _paramSet->parameters[PARAM_PID_YDOT_A] = 0.05;
-  _paramSet->parameters[PARAM_PID_PR_P] = 0.2;
-  _paramSet->parameters[PARAM_PID_PR_I] = 0.1;
+  _paramSet->parameters[PARAM_PID_PR_P] = 0.15;
+  _paramSet->parameters[PARAM_PID_PR_I] = 0.3;
   _paramSet->parameters[PARAM_PID_PR_D] = 0.02;
   _paramSet->parameters[PARAM_PID_PR_A] = 20;
   _paramSet->parameters[PARAM_PID_PRDOT_P] = 0.01;
