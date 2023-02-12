@@ -94,9 +94,9 @@ bool SensorPool::read() {
   }
   sensor->Attitude.z = -(attitude[0] * RAD_TO_DEG + offset);
   sensor->Attitude.w = -attitude[0] * RAD_TO_DEG;
-  sensor->AngularVelocity.x = rawGyro[0] * GYRO_INT_RAD;
-  sensor->AngularVelocity.y = rawGyro[1] * GYRO_INT_RAD;
-  sensor->AngularVelocity.z = rawGyro[2] * GYRO_INT_RAD;
+  sensor->AngularVelocity.x = rawGyro[1] * GYRO_INT_DEG;
+  sensor->AngularVelocity.y = -rawGyro[0] * GYRO_INT_DEG;
+  sensor->AngularVelocity.z = rawGyro[2] * GYRO_INT_DEG;
   sensor->Altitude = 0; // altitudeFilter.filter(tof->getDistance()) * cos(attitude[2]) * cos(attitude[1]) + sin(attitude[2]) * 20;
   return true;
 }
