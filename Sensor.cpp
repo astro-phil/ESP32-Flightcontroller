@@ -47,10 +47,12 @@ void SensorPool::setup() {
     while (1)
       ;
   Serial.println("MPU Initialized!");
+  /*
   if (tof->begin() != 0)
     while (1)
       ;
   Serial.println("TOF Initialized!");
+  */
   delay(2000);
   Serial.println("Calibrating Gyro ...");
   // supply your own gyro offsets here, scaled for min sensitivity
@@ -63,7 +65,7 @@ void SensorPool::setup() {
   mpu->PrintActiveOffsets();
   mpu->setDMPEnabled(true);
   Serial.println("Starting TOF...");
-  tof->startRanging();
+  //tof->startRanging();
   Serial.println("Sensors initialized!");
   offset = 0;
   altitudeFilter.reset();
@@ -76,8 +78,8 @@ bool SensorPool::read() {
   mpu->dmpGetYawPitchRoll(attitude, &q, &gravity);
   mpu->dmpGetGyro(rawGyro, fifoBuffer);
   sensor->Voltage = voltageFilter.filter(analogRead(VOLTAGE_PIN) * VOLTAGE_SCALE);
-  sensor->Attitude.x = attitude[2] * RAD_TO_DEG;
-  sensor->Attitude.y = -attitude[1] * RAD_TO_DEG;
+  sensor->Attitude.x = -attitude[1] * RAD_TO_DEG;
+  sensor->Attitude.y = -attitude[2] * RAD_TO_DEG;
   if (-(attitude[0] * RAD_TO_DEG + offset) - sensor->Attitude.z > 300) {
     offset += 359;
   } else if (-(attitude[0] * RAD_TO_DEG + offset) - sensor->Attitude.z < -300) {
@@ -88,7 +90,7 @@ bool SensorPool::read() {
   sensor->AngularVelocity.x = rawGyro[0] * GYRO_INT_RAD;
   sensor->AngularVelocity.y = rawGyro[1] * GYRO_INT_RAD;
   sensor->AngularVelocity.z = rawGyro[2] * GYRO_INT_RAD;
-  sensor->Altitude = altitudeFilter.filter(tof->getDistance()) * cos(attitude[2]) * cos(attitude[1]) + sin(attitude[2]) * 20;
+  sensor->Altitude = 0; // altitudeFilter.filter(tof->getDistance()) * cos(attitude[2]) * cos(attitude[1]) + sin(attitude[2]) * 20;
   return true;
 }
 
