@@ -5,6 +5,7 @@
 #include "WiFiUdp.h"
 #include "ParameterTypes.h"
 #include "DataTypes.h"
+#include <Adafruit_NeoPixel.h>
 
 #define MSG_TYPE_HANDSHAKE 1
 #define MSG_TYPE_REQUEST_PARAMETER 2
@@ -35,16 +36,19 @@
 #define PARAMETER_DISCONNECT_TIMEOUT 5000
 #define PARAMETER_MIN_ARM_COMMAND 0.1
 
+#define WIFI_LED 2
+
 class WiFiHandler {
 public:
   WiFiHandler(WiFiUDP* _UDP, const char* _ssid, uint16_t _port);
   void begin();
   void tick();
   void sendTelemetry();
-  void setPointer(ParameterSet* _params, MsgTelemetry* _telemetry, MsgControl* _control, SystemState * _system);
+  void setPointer(ParameterSet* _params, MsgTelemetry* _telemetry, MsgControl* _control, SystemState * _system, Adafruit_NeoPixel * _debugLED);
   bool recieve();
 private:
   WiFiUDP* udp;
+  Adafruit_NeoPixel * debugLED;
   const char* ssid;
   uint16_t remotePort;
   uint16_t port;

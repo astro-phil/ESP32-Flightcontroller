@@ -12,6 +12,10 @@
 #define UDP_PORT 4321
 #define UDP_SSID "ESP32-FlightController"
 
+#define SYSTEM_LED 0
+#define DEBUG_LED_PIN 23
+#define DEBUG_LED_BRIGHTNESS 30
+
 // PWM Pins 16 17 18 19
 
 static WiFiUDP udp;
@@ -21,6 +25,8 @@ static SFEVL53L1X tof;
 WiFiHandler wifi(&udp, UDP_SSID, UDP_PORT);
 SensorPool sensPool(&mpu, &tof);
 MotorController motor;
+
+Adafruit_NeoPixel debugLED(3, DEBUG_LED_PIN, NEO_GRB + NEO_KHZ800);
 
 Timer timer;
 SystemState systemStt;
@@ -69,14 +75,16 @@ void resetControl() {
 void setup() {
   Serial.begin(115200);
   Serial.print("Booting ... \n");
-  pinMode(INTERRUPT_PIN_MPU, INPUT);
-  pinMode(INTERRUPT_PIN_TOF, INPUT);
-  pinMode(TRIGGER_PIN_OUT, OUTPUT);
-  pinMode(TRIGGER_PIN_IN, INPUT);
-  //pinMode(VOLTAGE_PIN, INPUT);
-  digitalWrite(TRIGGER_PIN_OUT, HIGH);
-  //attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN_MPU), dmpDataReady, RISING);
-  //attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN_TOF), dmpDataReady, RISING);
+  debugLED.setBrightness(DEBUG_LED_BRIGHTNESS);
+  debugLED.setPixelColor(0,255, 0, 0);
+  debugLED.setPixelColor(1,255, 0, 0);
+  debugLED.setPixelColor(2,255, 0, 0);
+  debugLED.show();
+  setParameterDefaults(&paramSet, usedIndex);
+  setTelemetryPointer(&telemetry, &sensorStt, &motorStt, &systemStt, &inputStt);
+  wifi.setPointer(&paramSet, &telemetry, &control, &systemStt, &debugLED);
+  sensPool.setPointer(&paramSet, &sensorStt, &systemStt, &debugLED);
+  motor.setPointer(&paramSet, &motorStt, &systemStt);
   pitchI.setPointer(&systemStt);
   rollI.setPointer(&systemStt);
   yawI.setPointer(&systemStt);
@@ -88,11 +96,13 @@ void setup() {
   yawDotPID.setPointer(&paramSet, &systemStt);
   pitchDotPID.setPointer(&paramSet, &systemStt);
   rollDotPID.setPointer(&paramSet, &systemStt);
-  sensPool.setPointer(&paramSet, &sensorStt, &systemStt);
-  sensPool.setup();
 
+  delay(500);
+  debugLED.setPixelColor(SYSTEM_LED, 255, 255, 0);
+  debugLED.show();
+  sensPool.setup();
   wifi.begin();
-  motor.setPointer(&paramSet, &motorStt, &systemStt);
+
   xTaskCreatePinnedToCore(
     WifiLoop, "Wifi"  // A name just for humans
     ,
@@ -102,13 +112,12 @@ void setup() {
     ,
     NULL, 0);
   timer.reset();
+  debugLED.setPixelColor(SYSTEM_LED, 0, 255, 0);
+  debugLED.show();
 }
 
 void WifiLoop(void *pvParameters) {
   (void)pvParameters;
-  setParameterDefaults(&paramSet, usedIndex);
-  setTelemetryPointer(&telemetry, &sensorStt, &motorStt, &systemStt, &inputStt);
-  wifi.setPointer(&paramSet, &telemetry, &control, &systemStt);
   for (;;) {
     if (!wifi.recieve()) {
       wifi.sendTelemetry();
@@ -119,7 +128,6 @@ void WifiLoop(void *pvParameters) {
 }
 
 void loop() {
-
   if (sensPool.read()) {
     motorStt.armed = control.arm != 0;
     if (inputStt.arm != motorStt.armed) {

@@ -14,13 +14,16 @@ void WiFiHandler::begin() {
   Serial.println(IP);
   Serial.print("Listening on Port:");
   Serial.println(port);
+  debugLED->setPixelColor(WIFI_LED,255,0,0);
+  debugLED->show();
 }
 
-void WiFiHandler::setPointer(ParameterSet *_params, MsgTelemetry *_telemetry, MsgControl *_control, SystemState * _system) {
+void WiFiHandler::setPointer(ParameterSet *_params, MsgTelemetry *_telemetry, MsgControl *_control, SystemState * _system, Adafruit_NeoPixel * _debugLED) {
   paramSet = _params;
   telemetry = _telemetry;
   control = _control;
   system = _system;
+  debugLED = _debugLED;
 }
 
 void WiFiHandler::tick() {
@@ -30,6 +33,8 @@ void WiFiHandler::tick() {
     runTelemetry = false;
     control->arm = 0;
     Serial.println("Connection Lost!");
+    debugLED->setPixelColor(WIFI_LED,0,0,255);
+    debugLED->show();
   }
 }
 
@@ -51,6 +56,8 @@ bool WiFiHandler::recieve() {
         break;
       case MSG_TYPE_HANDSHAKE:
         Serial.println("Recieved Handshake!");
+        debugLED->setPixelColor(WIFI_LED,0,255,0);
+        debugLED->show();
         runTelemetry = false;
         remoteIP = udp->remoteIP();
         remotePort = udp->remotePort();

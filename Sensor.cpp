@@ -30,10 +30,11 @@ SensorPool::SensorPool(MPU6050* _mpu, SFEVL53L1X* _tof) {
   mpu = _mpu;
   tof = _tof;
 }
-void SensorPool::setPointer(ParameterSet* _param, SersorState* _sensor, SystemState* _system) {
+void SensorPool::setPointer(ParameterSet* _param, SersorState* _sensor, SystemState* _system, Adafruit_NeoPixel * _debugLED) {
   paramSet = _param;
   sensor = _sensor;
   system = _system;
+  debugLED = _debugLED;
   altitudeFilter.setPointer(_param, PARAM_FILTER_ALTITUDE);
   voltageFilter.setPointer(_param, PARAM_FILTER_VOLTAGE);
 }
@@ -41,6 +42,8 @@ void SensorPool::setPointer(ParameterSet* _param, SersorState* _sensor, SystemSt
 void SensorPool::setup() {
   Wire.begin();
   Wire.setClock(400000);
+  debugLED->setPixelColor(SENSOR_LED,0,0,255);
+  debugLED->show();
   mpu->initialize();
   Serial.println(mpu->testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
   if (mpu->dmpInitialize() != 0)
@@ -55,6 +58,8 @@ void SensorPool::setup() {
   */
   delay(2000);
   Serial.println("Calibrating Gyro ...");
+  debugLED->setPixelColor(SENSOR_LED,255,255,0);
+  debugLED->show();
   // supply your own gyro offsets here, scaled for min sensitivity
   mpu->setXGyroOffset(220);
   mpu->setYGyroOffset(76);
@@ -70,6 +75,8 @@ void SensorPool::setup() {
   offset = 0;
   altitudeFilter.reset();
   voltageFilter.reset();
+  debugLED->setPixelColor(SENSOR_LED,0,255,0);
+  debugLED->show();
 }
 bool SensorPool::read() {
   if (!mpu->dmpGetCurrentFIFOPacket(fifoBuffer)) { return false; }

@@ -6,6 +6,7 @@
 #include "SparkFun_VL53L1X.h"
 #include "DataTypes.h"
 #include "ParameterTypes.h"
+#include <Adafruit_NeoPixel.h>
 
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
 #include "Wire.h"
@@ -13,11 +14,13 @@
 #define INTERRUPT_PIN_MPU 23
 #define INTERRUPT_PIN_TOF 34
 #define VOLTAGE_PIN 36
-#define TRIGGER_PIN_OUT 12
-#define TRIGGER_PIN_IN 14
-#define GYRO_INT_RAD 2000.0 / 2147483647.0  //TODO Calibrate // 16.4
+// #define TRIGGER_PIN_OUT 12
+// #define TRIGGER_PIN_IN 14
+#define GYRO_INT_RAD 2000.0 / 2147483647.0  
 #define VOLTAGE_SCALE 3.94                  //0.00394
 #define MAX_FILTER_SIZE 10
+
+#define SENSOR_LED 1
 //#define RAD_TO_DEG 57.29577
 
 class LowPassFilter {
@@ -36,12 +39,13 @@ private:
 class SensorPool {
 public:
   SensorPool(MPU6050* _mpu, SFEVL53L1X* _tof);
-  void setPointer(ParameterSet* _param, SersorState* _sensor, SystemState* _system);
+  void setPointer(ParameterSet* _param, SersorState* _sensor, SystemState* _system, Adafruit_NeoPixel * _debugLED);
   void setup();
   bool read();
 private:
   MPU6050* mpu;
   SFEVL53L1X* tof;
+  Adafruit_NeoPixel* debugLED;
   SersorState* sensor;
   SystemState* system;
   ParameterSet* paramSet;
