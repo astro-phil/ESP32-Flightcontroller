@@ -49,16 +49,15 @@ private:
   SersorState* sensor;
   SystemState* system;
   ParameterSet* paramSet;
-  uint8_t fifoBuffer[64];  // FIFO storage buffer
+  uint8_t fifoBuffer[16];  // FIFO storage buffer
   Quaternion q;            // [w, x, y, z]         quaternion container
   VectorInt16 aa;          // [x, y, z]            accel sensor measurements
   VectorInt16 aaReal;      // [x, y, z]            gravity-free accel sensor measurements
   VectorInt16 aaWorld;     // [x, y, z]            world-frame accel sensor measurements
   VectorFloat gravity;     // [x, y, z]            gravity vector
   float attitude[3];       // [yaw, pitch, roll]   yaw/pitch/roll container
-  int32_t rawGyro[3];
-  int32_t rawAccel[3];
-  LowPassFilter altitudeFilter;
+  int16_t rawRotation[3];
+  int16_t rawAcceleration[3];
   LowPassFilter voltageFilter;
   int offset = 0;
 };

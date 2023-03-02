@@ -69,7 +69,7 @@ static void setTelemetryPointer(MsgTelemetry *_telemetry, SersorState *_sensor ,
   _telemetry->Altitude = &(_sensor->Altitude);
   _telemetry->CycleTime = &(_system->CycleTime);
   _telemetry->MotorTimes = &(_motor->MotorTimes);
-  _telemetry->armed = &(_motor->armed);
+  _telemetry->Armed = &(_motor->Armed);
   _telemetry->Voltage = &(_sensor->Voltage);
   _system->CycleTime = 10;  
 }

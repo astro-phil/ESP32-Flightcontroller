@@ -24,46 +24,46 @@ typedef struct {
 
 typedef struct {
   FVector4 Attitude;
+  FVector3 Error;
   FVector3 AngularVelocity;
-  uint16_t Altitude;
+  FVector3 LinearAcceleration;
   uint16_t Voltage; 
 } SersorState;
 
 typedef struct {
-  bool connected;
-  uint8_t flightmode;
+  bool Connected;
+  uint8_t Flightmode;
   uint16_t CycleTime;
+  float DeltaTime;
 } SystemState;
 
 typedef struct {
   FVector4 Control;
   IMotor4 MotorTimes;
-  bool armed;
+  bool Armed;
 } MotorState;
 
 typedef struct {
   FVector3 AngularVelocity;
   FVector3 Angle;
-  bool arm; 
-  uint16_t Altitude;
+  bool Arm; 
 } InputState;
 
 typedef struct {
   FVector4 *Attitude;
   FVector3 *TargetAttitude;
-  uint16_t *Altitude;
   IMotor4 *MotorTimes;
   uint16_t *CycleTime;
-  bool *armed;
+  bool *Armed;
   uint16_t *Voltage;
 } MsgTelemetry;
 
 typedef struct {
-  uint8_t arm;
-  int16_t yaw;
-  int16_t pitch;
-  int16_t roll;
-  int16_t throttle;
+  uint8_t Arm;
+  int16_t Yaw;
+  int16_t Pitch;
+  int16_t Roll;
+  int16_t Throttle;
 } MsgControl;
 
 #endif

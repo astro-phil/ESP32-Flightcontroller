@@ -10,20 +10,20 @@ void LowPassFilter::setPointer(ParameterSet* _param, uint8_t _paramID) {
 }
 
 void LowPassFilter::reset() {
-  for (uint8_t i = 0; i < paramSet->parameters[paramID]; i++) {
+  for (uint8_t i = 0; i < paramSet->Parameters[paramID]; i++) {
     store[i] = 0;
   }
 }
 
 float LowPassFilter::filter(float x) {
   index++;
-  if (index >= paramSet->parameters[paramID]) index = 0;
+  if (index >= paramSet->Parameters[paramID]) index = 0;
   store[index] = x;
   float sum = 0;
-  for (uint8_t i = 0; i < paramSet->parameters[paramID]; i++) {
+  for (uint8_t i = 0; i < paramSet->Parameters[paramID]; i++) {
     sum += store[i];
   }
-  return sum / paramSet->parameters[paramID];
+  return sum / paramSet->Parameters[paramID];
 }
 
 SensorPool::SensorPool(MPU6050* _mpu, SFEVL53L1X* _tof) {
@@ -75,7 +75,8 @@ void SensorPool::setup() {
   offset = 0;
   altitudeFilter.reset();
   voltageFilter.reset();
-  debugLED->setPixelColor(SENSOR_LED,0,255,0);
+  system->CycleTime = 0;
+  system->DeltaTime = 0;
   debugLED->show();
 }
 bool SensorPool::read() {

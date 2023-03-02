@@ -29,9 +29,9 @@ void WiFiHandler::setPointer(ParameterSet *_params, MsgTelemetry *_telemetry, Ms
 void WiFiHandler::tick() {
   if(connected && millis()-lastRecvTime > PARAMETER_DISCONNECT_TIMEOUT){
     connected = false;
-    system->connected = false;
+    system->Connected = false;
     runTelemetry = false;
-    control->arm = 0;
+    control->Arm = 0;
     Serial.println("Connection Lost!");
     debugLED->setPixelColor(WIFI_LED,0,0,255);
     debugLED->show();
@@ -48,11 +48,11 @@ bool WiFiHandler::recieve() {
     lastRecvTime = millis();
     switch (msg[MSG_STRUCTURE_HEADER]) {
       case MSG_TYPE_CONTROL:
-        memcpy(&control->arm, msg + MSG_STRUCTURE_CONTROL_ARM, SIZE_OF_INT8);
-        memcpy(&control->pitch, msg + MSG_STRUCTURE_CONTROL_PITCH, SIZE_OF_INT16);
-        memcpy(&control->roll, msg + MSG_STRUCTURE_CONTROL_ROLL, SIZE_OF_INT16);
-        memcpy(&control->yaw, msg + MSG_STRUCTURE_CONTROL_YAW, SIZE_OF_INT16);
-        memcpy(&control->throttle, msg + MSG_STRUCTURE_CONTROL_THROTTLE, SIZE_OF_INT16);
+        memcpy(&control->Arm, msg + MSG_STRUCTURE_CONTROL_ARM, SIZE_OF_INT8);
+        memcpy(&control->Pitch, msg + MSG_STRUCTURE_CONTROL_PITCH, SIZE_OF_INT16);
+        memcpy(&control->Roll, msg + MSG_STRUCTURE_CONTROL_ROLL, SIZE_OF_INT16);
+        memcpy(&control->Yaw, msg + MSG_STRUCTURE_CONTROL_YAW, SIZE_OF_INT16);
+        memcpy(&control->Throttle, msg + MSG_STRUCTURE_CONTROL_THROTTLE, SIZE_OF_INT16);
         break;
       case MSG_TYPE_HANDSHAKE:
         Serial.println("Recieved Handshake!");
@@ -74,18 +74,18 @@ bool WiFiHandler::recieve() {
         Serial.println("Recieved Parameter request!");
         buffer[MSG_STRUCTURE_HEADER] = MSG_TYPE_REQUEST_PARAMETER;
         buffer[MSG_STRUCTURE_PARAMETER_ID] = msg[MSG_STRUCTURE_PARAMETER_ID];
-        memcpy(buffer + MSG_STRUCTURE_PARAMETER_DATA, &paramSet->parameters[msg[MSG_STRUCTURE_PARAMETER_ID]], SIZE_OF_FLOAT);
-        Serial.printf("Sent Parameter:{%i} = {%f}\n", msg[MSG_STRUCTURE_PARAMETER_ID], paramSet->parameters[msg[MSG_STRUCTURE_PARAMETER_ID]]);
+        memcpy(buffer + MSG_STRUCTURE_PARAMETER_DATA, &paramSet->Parameters[msg[MSG_STRUCTURE_PARAMETER_ID]], SIZE_OF_FLOAT);
+        Serial.printf("Sent Parameter:{%i} = {%f}\n", msg[MSG_STRUCTURE_PARAMETER_ID], paramSet->Parameters[msg[MSG_STRUCTURE_PARAMETER_ID]]);
         udp->beginPacket(remoteIP, remotePort);
         udp->write(buffer, 2 + SIZE_OF_FLOAT);
         udp->endPacket();
         connected = true;
-        system->connected = true;
+        system->Connected = true;
         break;
       case MSG_TYPE_UPDATE_PARAMETER:
-        Serial.printf("Updated Parameter:{%i} = {%f}", msg[MSG_STRUCTURE_PARAMETER_ID], paramSet->parameters[msg[MSG_STRUCTURE_PARAMETER_ID]]);
-        memcpy(&paramSet->parameters[msg[MSG_STRUCTURE_PARAMETER_ID]], msg + MSG_STRUCTURE_PARAMETER_DATA, SIZE_OF_FLOAT);
-        Serial.printf(" <- {%f}\n", paramSet->parameters[msg[MSG_STRUCTURE_PARAMETER_ID]]);
+        Serial.printf("Updated Parameter:{%i} = {%f}", msg[MSG_STRUCTURE_PARAMETER_ID], paramSet->Parameters[msg[MSG_STRUCTURE_PARAMETER_ID]]);
+        memcpy(&paramSet->Parameters[msg[MSG_STRUCTURE_PARAMETER_ID]], msg + MSG_STRUCTURE_PARAMETER_DATA, SIZE_OF_FLOAT);
+        Serial.printf(" <- {%f}\n", paramSet->Parameters[msg[MSG_STRUCTURE_PARAMETER_ID]]);
         udp->beginPacket(remoteIP, remotePort);
         udp->write(msg, 2 + SIZE_OF_FLOAT);
         udp->endPacket();
@@ -105,16 +105,16 @@ bool WiFiHandler::recieve() {
 void WiFiHandler::sendTelemetry() {
   if (connected && runTelemetry) {
     cycleCount++;
-    if (cycleCount > paramSet->parameters[PARAM_SYSTEM_UPDATECYCLE]) {
+    if (cycleCount > paramSet->Parameters[PARAM_SYSTEM_UPDATECYCLE]) {
       uint8_t outBuffer[27];
       uint8_t messageIndex = 0;
       int16_t aAttitude[] = {telemetry->Attitude->x*160,telemetry->Attitude->y*160,telemetry->Attitude->w*160};
       int16_t aTargetAttitude[] = {telemetry->TargetAttitude->x*160,telemetry->TargetAttitude->y*160,telemetry->TargetAttitude->z*160};
       uint16_t aMotor[] = {telemetry->MotorTimes->fl,telemetry->MotorTimes->fr,telemetry->MotorTimes->bl,telemetry->MotorTimes->br};
       outBuffer[MSG_STRUCTURE_HEADER] = MSG_TYPE_TELEMETRY;
-      outBuffer[MSG_TELEMETRY_CYCLETIME] = *(telemetry->CycleTime);
-      outBuffer[MSG_TELEMETRY_ARMED] = *(telemetry->armed);
-      messageIndex += 3;
+      outBuffer[MSG_TELEMETRY_ARMED] = *(telemetry->Armed);
+      memcpy(outBuffer + MSG_TELEMETRY_CYCLETIME, telemetry->CycleTime , SIZE_OF_INT16);
+      messageIndex += 4;
       memcpy(outBuffer + messageIndex, aAttitude , SIZE_OF_INT16 * 3);
       messageIndex +=  SIZE_OF_INT16 * 3;
       memcpy(outBuffer + messageIndex, aMotor , SIZE_OF_INT16 * 4);
