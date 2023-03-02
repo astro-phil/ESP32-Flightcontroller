@@ -20,15 +20,15 @@
 
 static WiFiUDP udp;
 static MPU6050 mpu;
-static SFEVL53L1X tof;
 
 WiFiHandler wifi(&udp, UDP_SSID, UDP_PORT);
-SensorPool sensPool(&mpu, &tof);
+SensorPool sensPool(&mpu);
 MotorController motor;
+LoopPerformance controlPerformer;
+LoopDelay secondaryLoopPerformer(WIFI_LOOP_TIME);
 
 Adafruit_NeoPixel debugLED(3, DEBUG_LED_PIN, NEO_GRB + NEO_KHZ800);
 
-Timer timer;
 SystemState systemStt;
 SersorState sensorStt;
 MotorState motorStt;
@@ -51,11 +51,7 @@ PID rollDotPID(PARAM_PID_PRDOT_P, PARAM_PID_PRDOT_I, PARAM_PID_PRDOT_D, PARAM_PI
 PID altPID(PARAM_PID_ALT_P, PARAM_PID_ALT_I, PARAM_PID_ALT_D, PARAM_PID_ALT_A);
 
 // defifne two tasks for Blink & AnalogRead
-void WifiLoop(void *pvParameters);
-
-volatile bool mpuInterrupt = false;  // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-}
+void SecondaryLoop(void *pvParameters);
 
 void resetControl() {
   yawI.reset(sensorStt.Attitude.z);
@@ -76,9 +72,9 @@ void setup() {
   Serial.begin(115200);
   Serial.print("Booting ... \n");
   debugLED.setBrightness(DEBUG_LED_BRIGHTNESS);
-  debugLED.setPixelColor(0,255, 0, 0);
-  debugLED.setPixelColor(1,255, 0, 0);
-  debugLED.setPixelColor(2,255, 0, 0);
+  debugLED.setPixelColor(0, 255, 0, 0);
+  debugLED.setPixelColor(1, 255, 0, 0);
+  debugLED.setPixelColor(2, 255, 0, 0);
   debugLED.show();
   setParameterDefaults(&paramSet, usedIndex);
   setTelemetryPointer(&telemetry, &sensorStt, &motorStt, &systemStt, &inputStt);
@@ -96,13 +92,12 @@ void setup() {
   yawDotPID.setPointer(&paramSet, &systemStt);
   pitchDotPID.setPointer(&paramSet, &systemStt);
   rollDotPID.setPointer(&paramSet, &systemStt);
-
   delay(500);
   debugLED.setPixelColor(SYSTEM_LED, 255, 255, 0);
   debugLED.show();
   sensPool.setup();
   wifi.begin();
-
+  controlPerformer.reset();
   xTaskCreatePinnedToCore(
     SecondaryLoop, "SecondaryLoop"  // A name just for humans
     ,
@@ -119,38 +114,40 @@ void SecondaryLoop(void *pvParameters) {
   (void)pvParameters;
   for (;;) {
     if (!wifi.recieve()) {
+      secondaryLoopPerformer.tick();
       wifi.sendTelemetry();
-      delay(10);
+      sensPool.readSensors();
+      secondaryLoopPerformer.wait();
     }
     wifi.tick();
   }
 }
 
 void loop() {
+  sensPool.readDMP();
+  sensPool.readGyro();
   motorStt.Armed = control.Arm != 0;
   if (inputStt.Arm != motorStt.Armed) {
     inputStt.Arm = motorStt.Armed;
-      resetControl();
-    }
+    resetControl();
+  }
 
   inputStt.AngularVelocity.x = control.Pitch / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
   inputStt.AngularVelocity.y = control.Roll / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
   inputStt.AngularVelocity.z = control.Yaw / 32000.0 * paramSet.Parameters[PARAM_USER_YAW_SENSE];
 
-    inputStt.Angle.x = pitchI.step(inputStt.AngularVelocity.x);
-    inputStt.Angle.y = rollI.step(inputStt.AngularVelocity.y);
-    inputStt.Angle.z = yawI.step(inputStt.AngularVelocity.z);
+  inputStt.Angle.x = pitchI.step(inputStt.AngularVelocity.x);
+  inputStt.Angle.y = rollI.step(inputStt.AngularVelocity.y);
+  inputStt.Angle.z = yawI.step(inputStt.AngularVelocity.z);
 
-    motorStt.Control.z = yawDotPID.step(sensorStt.AngularVelocity.z, yawPID.step(sensorStt.Attitude.z, inputStt.AngularVelocity.z, inputStt.Angle.z));
-    motorStt.Control.x = pitchDotPID.step(sensorStt.AngularVelocity.x, pitchPID.step(sensorStt.Attitude.x, inputStt.AngularVelocity.x, inputStt.Angle.x));
-    motorStt.Control.y = rollDotPID.step(sensorStt.AngularVelocity.y, rollPID.step(sensorStt.Attitude.y, inputStt.AngularVelocity.y, inputStt.Angle.y));
+  motorStt.Control.z = yawDotPID.step(sensorStt.AngularVelocity.z, yawPID.step(sensorStt.Attitude.z, inputStt.AngularVelocity.z, inputStt.Angle.z));
+  motorStt.Control.x = pitchDotPID.step(sensorStt.AngularVelocity.x, pitchPID.step(sensorStt.Attitude.x, inputStt.AngularVelocity.x, inputStt.Angle.x));
+  motorStt.Control.y = rollDotPID.step(sensorStt.AngularVelocity.y, rollPID.step(sensorStt.Attitude.y, inputStt.AngularVelocity.y, inputStt.Angle.y));
   motorStt.Control.w = control.Throttle / 32000.0 * paramSet.Parameters[PARAM_USER_THROTTLE_SENSE];
 
-    //Serial.printf("pitch %f:%f ; roll %f:%f ; yaw %f:%f \n", sensorStt.AngularVelocity.x, sensorStt.Attitude.x,  sensorStt.AngularVelocity.y, sensorStt.Attitude.y,  sensorStt.AngularVelocity.z, sensorStt.Attitude.z);
-    //Serial.printf("pitch %f:%f ; roll %f:%f ; yaw %f:%f \n", inputStt.AngularVelocity.x, inputStt.Angle.x,  inputStt.AngularVelocity.y, inputStt.Angle.y,  inputStt.AngularVelocity.z, inputStt.Angle.z);
-
-    //Serial.println(digitalRead(TRIGGER_PIN_IN));
-    motor.update();
+  //Serial.printf("pitch %f:%f ; roll %f:%f ; yaw %f:%f \n", sensorStt.AngularVelocity.x, sensorStt.Attitude.x,  sensorStt.AngularVelocity.y, sensorStt.Attitude.y,  sensorStt.AngularVelocity.z, sensorStt.Attitude.z);
+  //Serial.printf("pitch %f:%f ; roll %f:%f ; yaw %f:%f \n", inputStt.AngularVelocity.x, inputStt.Angle.x,  inputStt.AngularVelocity.y, inputStt.Angle.y,  inputStt.AngularVelocity.z, inputStt.Angle.z);
+  motor.update();
 
   systemStt.CycleTime = controlPerformer.average();
   systemStt.DeltaTime = systemStt.CycleTime * TIMER_S;

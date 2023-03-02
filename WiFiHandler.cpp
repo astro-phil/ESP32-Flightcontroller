@@ -106,7 +106,7 @@ void WiFiHandler::sendTelemetry() {
   if (connected && runTelemetry) {
     cycleCount++;
     if (cycleCount > paramSet->Parameters[PARAM_SYSTEM_UPDATECYCLE]) {
-      uint8_t outBuffer[27];
+      uint8_t outBuffer[26];
       uint8_t messageIndex = 0;
       int16_t aAttitude[] = {telemetry->Attitude->x*160,telemetry->Attitude->y*160,telemetry->Attitude->w*160};
       int16_t aTargetAttitude[] = {telemetry->TargetAttitude->x*160,telemetry->TargetAttitude->y*160,telemetry->TargetAttitude->z*160};
@@ -119,14 +119,12 @@ void WiFiHandler::sendTelemetry() {
       messageIndex +=  SIZE_OF_INT16 * 3;
       memcpy(outBuffer + messageIndex, aMotor , SIZE_OF_INT16 * 4);
       messageIndex +=  SIZE_OF_INT16 * 4;
-      memcpy(outBuffer + messageIndex, telemetry->Altitude, SIZE_OF_INT16);
-      messageIndex +=  SIZE_OF_INT16;
       memcpy(outBuffer + messageIndex, telemetry->Voltage, SIZE_OF_INT16);
       messageIndex +=  SIZE_OF_INT16;
       memcpy(outBuffer + messageIndex, aTargetAttitude , SIZE_OF_INT16 * 3);
       messageIndex +=  SIZE_OF_INT16 * 3;
       udp->beginPacket(remoteIP, remotePort);
-      udp->write(outBuffer, 27);
+      udp->write(outBuffer, 26);
       udp->endPacket();
       cycleCount = 1;
     }

@@ -26,8 +26,8 @@
 #define MSG_STRUCTURE_CONTROL_YAW 6
 #define MSG_STRUCTURE_CONTROL_THROTTLE 8
 
-#define MSG_TELEMETRY_CYCLETIME 1
-#define MSG_TELEMETRY_ARMED 2
+#define MSG_TELEMETRY_ARMED 1
+#define MSG_TELEMETRY_CYCLETIME 2
 
 #define SIZE_OF_FLOAT 4
 #define SIZE_OF_INT16 2
@@ -37,6 +37,7 @@
 #define PARAMETER_MIN_ARM_COMMAND 0.1
 
 #define WIFI_LED 2
+#define WIFI_LOOP_TIME 10
 
 class WiFiHandler {
 public:
@@ -66,12 +67,10 @@ private:
 static void setTelemetryPointer(MsgTelemetry *_telemetry, SersorState *_sensor , MotorState *_motor, SystemState * _system, InputState * _input) {
   _telemetry->Attitude = &(_sensor->Attitude);
   _telemetry->TargetAttitude = &(_input->Angle);
-  _telemetry->Altitude = &(_sensor->Altitude);
   _telemetry->CycleTime = &(_system->CycleTime);
   _telemetry->MotorTimes = &(_motor->MotorTimes);
   _telemetry->Armed = &(_motor->Armed);
-  _telemetry->Voltage = &(_sensor->Voltage);
-  _system->CycleTime = 10;  
+  _telemetry->Voltage = &(_sensor->Voltage);  
 }
 
 #endif
