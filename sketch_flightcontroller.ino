@@ -131,14 +131,24 @@ void loop() {
     inputStt.Arm = motorStt.Armed;
     resetControl();
   }
+  switch (systemStt.ConnectionState) {
+    case 1:
+      inputStt.AngularVelocity.x = control.Pitch / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
+      inputStt.AngularVelocity.y = control.Roll / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
+      inputStt.AngularVelocity.z = control.Yaw / 32000.0 * paramSet.Parameters[PARAM_USER_YAW_SENSE];
 
-  inputStt.AngularVelocity.x = control.Pitch / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
-  inputStt.AngularVelocity.y = control.Roll / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
-  inputStt.AngularVelocity.z = control.Yaw / 32000.0 * paramSet.Parameters[PARAM_USER_YAW_SENSE];
-
-  inputStt.Angle.x = pitchI.step(inputStt.AngularVelocity.x);
-  inputStt.Angle.y = rollI.step(inputStt.AngularVelocity.y);
-  inputStt.Angle.z = yawI.step(inputStt.AngularVelocity.z);
+      inputStt.Angle.x = pitchI.step(inputStt.AngularVelocity.x);
+      inputStt.Angle.y = rollI.step(inputStt.AngularVelocity.y);
+      inputStt.Angle.z = yawI.step(inputStt.AngularVelocity.z);
+      break;
+    case 2:
+      inputStt.AngularVelocity.x = 0;
+      inputStt.AngularVelocity.y = 0;
+      inputStt.AngularVelocity.z = 0;
+      inputStt.Angle.x = 0;
+      inputStt.Angle.y = 0;
+      break;
+  }
 
   motorStt.Control.z = yawDotPID.step(sensorStt.AngularVelocity.z, yawPID.step(sensorStt.Attitude.z, inputStt.AngularVelocity.z, inputStt.Angle.z));
   motorStt.Control.x = pitchDotPID.step(sensorStt.AngularVelocity.x, pitchPID.step(sensorStt.Attitude.x, inputStt.AngularVelocity.x, inputStt.Angle.x));

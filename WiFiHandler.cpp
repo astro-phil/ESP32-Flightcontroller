@@ -14,11 +14,11 @@ void WiFiHandler::begin() {
   Serial.println(IP);
   Serial.print("Listening on Port:");
   Serial.println(port);
-  debugLED->setPixelColor(WIFI_LED,255,0,0);
+  debugLED->setPixelColor(WIFI_LED, 255, 0, 0);
   debugLED->show();
 }
 
-void WiFiHandler::setPointer(ParameterSet *_params, MsgTelemetry *_telemetry, MsgControl *_control, SystemState * _system, Adafruit_NeoPixel * _debugLED) {
+void WiFiHandler::setPointer(ParameterSet *_params, MsgTelemetry *_telemetry, MsgControl *_control, SystemState *_system, Adafruit_NeoPixel *_debugLED) {
   paramSet = _params;
   telemetry = _telemetry;
   control = _control;
@@ -27,14 +27,28 @@ void WiFiHandler::setPointer(ParameterSet *_params, MsgTelemetry *_telemetry, Ms
 }
 
 void WiFiHandler::tick() {
-  if(connected && millis()-lastRecvTime > PARAMETER_DISCONNECT_TIMEOUT){
-    connected = false;
-    system->Connected = false;
-    runTelemetry = false;
-    control->Arm = 0;
-    Serial.println("Connection Lost!");
-    debugLED->setPixelColor(WIFI_LED,0,0,255);
-    debugLED->show();
+  switch (system->ConnectionState) {
+    case 1:
+      if (millis() - lastRecvTime > PARAMETER_FAILSAFE_TIMEOUT) {
+        control->Pitch = 0;
+        control->Roll = 0;
+        control->Yaw = 0;
+        control->Throttle = min(control->Throttle, (int16_t) PARAMETER_FAILSAFE_THROTTLE);
+        system->ConnectionState = 2;
+        debugLED->setPixelColor(WIFI_LED, 255, 0, 255);
+        debugLED->show();
+      }
+      break;
+    case 2:
+      if (millis() - lastRecvTime > PARAMETER_DISCONNECT_TIMEOUT) {
+        system->ConnectionState = 0;
+        system->Telemetry = false;
+        control->Arm = 0;
+        Serial.println("Connection Lost!");
+        debugLED->setPixelColor(WIFI_LED, 0, 0, 255);
+        debugLED->show();
+      }
+      break;
   }
 }
 
@@ -56,9 +70,10 @@ bool WiFiHandler::recieve() {
         break;
       case MSG_TYPE_HANDSHAKE:
         Serial.println("Recieved Handshake!");
-        debugLED->setPixelColor(WIFI_LED,0,255,0);
+        system->ConnectionState = 1;
+        debugLED->setPixelColor(WIFI_LED, 0, 255, 0);
         debugLED->show();
-        runTelemetry = false;
+        system->Telemetry = false;
         remoteIP = udp->remoteIP();
         remotePort = udp->remotePort();
         buffer[MSG_STRUCTURE_HEADER] = MSG_TYPE_HANDSHAKE;
@@ -79,8 +94,6 @@ bool WiFiHandler::recieve() {
         udp->beginPacket(remoteIP, remotePort);
         udp->write(buffer, 2 + SIZE_OF_FLOAT);
         udp->endPacket();
-        connected = true;
-        system->Connected = true;
         break;
       case MSG_TYPE_UPDATE_PARAMETER:
         Serial.printf("Updated Parameter:{%i} = {%f}", msg[MSG_STRUCTURE_PARAMETER_ID], paramSet->Parameters[msg[MSG_STRUCTURE_PARAMETER_ID]]);
@@ -91,7 +104,7 @@ bool WiFiHandler::recieve() {
         udp->endPacket();
         break;
       case MSG_TYPE_SET_TELEMETRY:
-        runTelemetry = msg[1] != 0;
+        system->Telemetry = msg[1] != 0;
         udp->beginPacket(remoteIP, remotePort);
         udp->write(msg, 2);
         udp->endPacket();
@@ -103,26 +116,26 @@ bool WiFiHandler::recieve() {
 }
 
 void WiFiHandler::sendTelemetry() {
-  if (connected && runTelemetry) {
+  if (system->ConnectionState && system->Telemetry) {
     cycleCount++;
     if (cycleCount > paramSet->Parameters[PARAM_SYSTEM_UPDATECYCLE]) {
       uint8_t outBuffer[26];
       uint8_t messageIndex = 0;
-      int16_t aAttitude[] = {telemetry->Attitude->x*160,telemetry->Attitude->y*160,telemetry->Attitude->w*160};
-      int16_t aTargetAttitude[] = {telemetry->TargetAttitude->x*160,telemetry->TargetAttitude->y*160,telemetry->TargetAttitude->z*160};
-      uint16_t aMotor[] = {telemetry->MotorTimes->fl,telemetry->MotorTimes->fr,telemetry->MotorTimes->bl,telemetry->MotorTimes->br};
+      int16_t aAttitude[] = { telemetry->Attitude->x * 160, telemetry->Attitude->y * 160, telemetry->Attitude->w * 160 };
+      int16_t aTargetAttitude[] = { telemetry->TargetAttitude->x * 160, telemetry->TargetAttitude->y * 160, telemetry->TargetAttitude->z * 160 };
+      uint16_t aMotor[] = { telemetry->MotorTimes->fl, telemetry->MotorTimes->fr, telemetry->MotorTimes->bl, telemetry->MotorTimes->br };
       outBuffer[MSG_STRUCTURE_HEADER] = MSG_TYPE_TELEMETRY;
       outBuffer[MSG_TELEMETRY_ARMED] = *(telemetry->Armed);
-      memcpy(outBuffer + MSG_TELEMETRY_CYCLETIME, telemetry->CycleTime , SIZE_OF_INT16);
+      memcpy(outBuffer + MSG_TELEMETRY_CYCLETIME, telemetry->CycleTime, SIZE_OF_INT16);
       messageIndex += 4;
-      memcpy(outBuffer + messageIndex, aAttitude , SIZE_OF_INT16 * 3);
-      messageIndex +=  SIZE_OF_INT16 * 3;
-      memcpy(outBuffer + messageIndex, aMotor , SIZE_OF_INT16 * 4);
-      messageIndex +=  SIZE_OF_INT16 * 4;
+      memcpy(outBuffer + messageIndex, aAttitude, SIZE_OF_INT16 * 3);
+      messageIndex += SIZE_OF_INT16 * 3;
+      memcpy(outBuffer + messageIndex, aMotor, SIZE_OF_INT16 * 4);
+      messageIndex += SIZE_OF_INT16 * 4;
       memcpy(outBuffer + messageIndex, telemetry->Voltage, SIZE_OF_INT16);
-      messageIndex +=  SIZE_OF_INT16;
-      memcpy(outBuffer + messageIndex, aTargetAttitude , SIZE_OF_INT16 * 3);
-      messageIndex +=  SIZE_OF_INT16 * 3;
+      messageIndex += SIZE_OF_INT16;
+      memcpy(outBuffer + messageIndex, aTargetAttitude, SIZE_OF_INT16 * 3);
+      messageIndex += SIZE_OF_INT16 * 3;
       udp->beginPacket(remoteIP, remotePort);
       udp->write(outBuffer, 26);
       udp->endPacket();

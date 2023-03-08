@@ -50,12 +50,12 @@ void MotorController::update() {
   motor->MotorTimes.fr = controlFR;
   motor->MotorTimes.bl = controlBL;
   motor->MotorTimes.br = controlBR;
-  if (motor->Armed && system->Connected) {
+  if (motor->Armed && system->ConnectionState) {
     ledcWrite(0, controlFL);
     ledcWrite(1, controlFR);
     ledcWrite(2, controlBL);
     ledcWrite(3, controlBR);
-  } else if (system->Connected) {
+  } else if (system->ConnectionState) {
     low();
   } else {
     stop();

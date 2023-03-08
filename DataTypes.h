@@ -31,7 +31,8 @@ typedef struct {
 } SersorState;
 
 typedef struct {
-  bool Connected;
+  bool Telemetry;
+  uint8_t ConnectionState;
   uint8_t Flightmode;
   uint16_t CycleTime;
   float DeltaTime;

@@ -33,8 +33,9 @@
 #define SIZE_OF_INT16 2
 #define SIZE_OF_INT8 1
 
-#define PARAMETER_DISCONNECT_TIMEOUT 5000
-#define PARAMETER_MIN_ARM_COMMAND 0.1
+#define PARAMETER_DISCONNECT_TIMEOUT 10000
+#define PARAMETER_FAILSAFE_TIMEOUT 2000
+#define PARAMETER_FAILSAFE_THROTTLE 6400
 
 #define WIFI_LED 2
 #define WIFI_LOOP_TIME 10
@@ -50,16 +51,14 @@ public:
 private:
   WiFiUDP* udp;
   Adafruit_NeoPixel * debugLED;
-  const char* ssid;
-  uint16_t remotePort;
-  uint16_t port;
   IPAddress remoteIP;
   ParameterSet* paramSet;
   MsgTelemetry* telemetry;
   MsgControl* control;
   SystemState* system;
-  bool connected = false;
-  bool runTelemetry = false;
+  const char* ssid;
+  uint16_t port;
+  uint16_t remotePort;
   uint16_t cycleCount = 1;
   int lastRecvTime = 0;
 };
