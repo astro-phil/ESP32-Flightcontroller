@@ -1,10 +1,10 @@
 #ifndef Motor_h
 #define Motor_h
 
-#define MOTOR_PIN_FL 16
+#define MOTOR_PIN_FL 18 //16
 #define MOTOR_PIN_FR 17
-#define MOTOR_PIN_BL 18
-#define MOTOR_PIN_BR 19
+#define MOTOR_PIN_BL 19 //18
+#define MOTOR_PIN_BR 16 //19
 
 #define PWM_MIN 3000 // 3277
 #define PWM_RANGE 3054

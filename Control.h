@@ -27,6 +27,7 @@ public:
   void reset();
   void reset(float x);
   float step(float xdot);
+  float step(float xdot, float min, float max);
 private:
   float state = 0;
   SystemState* system;

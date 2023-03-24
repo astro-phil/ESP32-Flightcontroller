@@ -2,120 +2,94 @@
 #define Sensor_h
 
 #include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps20.h"
-#include "SparkFun_VL53L1X.h"
+#include "MPU6050_6Axis_MotionApps_V6_12.h"
 #include "DataTypes.h"
+#include "ParameterTypes.h"
+#include <Adafruit_NeoPixel.h>
 
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
 #include "Wire.h"
 #endif
-#define INTERRUPT_PIN_MPU 23
+
+#define INTERRUPT_PIN_MPU 35
 #define INTERRUPT_PIN_TOF 34
 #define VOLTAGE_PIN 36
-#define TRIGGER_PIN_OUT 12
-#define TRIGGER_PIN_IN 14
-#define GYRO_INT_RAD 2000.0 / 2147483647.0  //TODO Calibrate // 16.4
-#define VOLTAGE_SCALE  3.94 //0.00394
-//#define RAD_TO_DEG 57.29577 
+
+#define GYRO_INT_DEG 2000.0 / 2147483647.0
+#define ROTATION_DEG 2000.0 / 32767.0
+#define ACCELERATION_M_S 2000.0 / 32767.0
+#define VOLTAGE_SCALE 3.94  //0.00394
+#define MAX_FILTER_SIZE 10
+#define TIMER_S 1.0 / 1000000.0
+
+#define SENSOR_LED 1
+//#define RAD_TO_DEG 57.29577
+
+class LowPassFilter {
+public:
+  LowPassFilter();
+  void setPointer(ParameterSet* _param, uint8_t _paramID);
+  void reset();
+  float filter(float x);
+private:
+  float store[MAX_FILTER_SIZE];
+  uint8_t index;
+  uint8_t paramID;
+  ParameterSet* paramSet;
+};
+
+class LoopDelay {
+public:
+  LoopDelay(uint8_t _waitTime);
+  void tick();
+  void wait();
+private:
+  unsigned long time = 0;
+  uint8_t waitTime = 0;
+};
+
+class LoopPerformance {
+public:
+  LoopPerformance();
+  void reset();
+  long tick();
+  long average();
+private:
+  long time1 = 0;
+  long time2 = 0;
+  long t[5] = { 1, 1, 1, 1, 1 };
+  char tp = 0;
+  long dt = 0;
+};
 
 class SensorPool {
 public:
-  SensorPool(MPU6050* _mpu, SFEVL53L1X* _tof) {
-    mpu = _mpu;
-    tof = _tof;
-  }
-  void setPointer(SersorState* _sensor, SystemState* _system) {
-    sensor = _sensor;
-    system = _system;
-  }
-  void setup() {
-    Wire.begin();
-    Wire.setClock(400000);
-    mpu->initialize();
-    Serial.println(mpu->testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
-    if (mpu->dmpInitialize() != 0)
-      while (1)
-        ;
-    Serial.println("MPU Initialized!");
-    if (tof->begin() != 0)
-      while (1)
-        ;
-    Serial.println("TOF Initialized!");
-    delay(2000);
-    Serial.println("Calibrating Gyro ...");
-    // supply your own gyro offsets here, scaled for min sensitivity
-    mpu->setXGyroOffset(220);
-    mpu->setYGyroOffset(76);
-    mpu->setZGyroOffset(-85);
-    mpu->setZAccelOffset(1788);  // 1688 factory default for my test chip
-    mpu->CalibrateAccel(6);
-    mpu->CalibrateGyro(6);
-    mpu->PrintActiveOffsets();
-    mpu->setDMPEnabled(true);
-    Serial.println("Starting TOF...");
-    tof->startRanging();
-    Serial.println("Sensors initialized!");
-  }
-  bool read() {
-    if (!mpu->dmpGetCurrentFIFOPacket(fifoBuffer)) { return false; }    
-    mpu->dmpGetQuaternion(&q, fifoBuffer);
-    mpu->dmpGetGravity(&gravity, &q);
-    mpu->dmpGetYawPitchRoll(attitude, &q, &gravity);
-    mpu->dmpGetGyro(rawGyro, fifoBuffer);
-    sensor->Voltage = analogRead(VOLTAGE_PIN)*VOLTAGE_SCALE;
-    sensor->Attitude.x = attitude[2] * RAD_TO_DEG;
-    sensor->Attitude.y = -attitude[1] * RAD_TO_DEG;
-    sensor->Attitude.z = -attitude[0] * RAD_TO_DEG;
-    sensor->AngularVelocity.x = rawGyro[0] * GYRO_INT_RAD;
-    sensor->AngularVelocity.y = rawGyro[1] * GYRO_INT_RAD;
-    sensor->AngularVelocity.z = rawGyro[2] * GYRO_INT_RAD;
-    sensor->Altitude = tof->getDistance();
-    return true;
-  }
-
+  SensorPool(MPU6050* _mpu);
+  void setPointer(ParameterSet* _param, SersorState* _sensor, SystemState* _system, Adafruit_NeoPixel* _debugLED);
+  void setup();
+  void readDMP();
+  void readGyro();
+  void readSensors();
 private:
   MPU6050* mpu;
-  SFEVL53L1X* tof;
+  Adafruit_NeoPixel* debugLED;
   SersorState* sensor;
   SystemState* system;
-  uint8_t fifoBuffer[64];  // FIFO storage buffer
+  ParameterSet* paramSet;
+  uint8_t fifoBuffer[16];  // FIFO storage buffer
   Quaternion q;            // [w, x, y, z]         quaternion container
   VectorInt16 aa;          // [x, y, z]            accel sensor measurements
   VectorInt16 aaReal;      // [x, y, z]            gravity-free accel sensor measurements
   VectorInt16 aaWorld;     // [x, y, z]            world-frame accel sensor measurements
   VectorFloat gravity;     // [x, y, z]            gravity vector
   float attitude[3];       // [yaw, pitch, roll]   yaw/pitch/roll container
-  int32_t rawGyro[3];
-  int32_t rawAccel[3];
+  int16_t rawRotation[3];
+  int16_t rawAcceleration[3];
+  LowPassFilter voltageFilter;
+  int offset = 0;
+  uint8_t fifoptr = 0;
 };
 
-class Timer {
-public:
-  Timer() {
-  }
-  void reset() {
-    time2 = millis();
-    time1 = time2;
-  }
-  int tick() {
-    time2 = millis();
-    dt = time2 - time1;
-    time1 = time2;
-    if (tp > 4) tp = 0;
-    t[tp] = dt;
-    tp++;
-    return dt;
-  }
-  int average() {
-    return (t[0] + t[1] + t[2] + t[3] + t[4]) / 5;
-  }
-private:
-  int time1 = 0;
-  int time2 = 0;
-  int t[5] = { 1, 1, 1, 1, 1 };
-  char tp = 0;
-  int dt = 0;
-};
 
 
 #endif
