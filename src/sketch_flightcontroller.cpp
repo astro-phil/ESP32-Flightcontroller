@@ -2,6 +2,7 @@
   Phil White
 *********/
 
+#include <Arduino.h>
 #include "WiFiHandler.h"
 #include "DataTypes.h"
 #include "ParameterTypes.h"
@@ -53,7 +54,8 @@ PID altPID(PARAM_PID_ALT_P, PARAM_PID_ALT_I, PARAM_PID_ALT_D, PARAM_PID_ALT_A);
 // defifne two tasks for Blink & AnalogRead
 void SecondaryLoop(void *pvParameters);
 
-void resetControl() {
+void resetControl()
+{
   yawI.reset(sensorStt.Attitude.z);
   pitchI.reset(sensorStt.Attitude.x);
   rollI.reset(sensorStt.Attitude.y);
@@ -67,8 +69,8 @@ void resetControl() {
   altPID.reset();
 }
 
-
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   Serial.print("Booting ... \n");
   debugLED.setBrightness(DEBUG_LED_BRIGHTNESS);
@@ -99,21 +101,24 @@ void setup() {
   wifi.begin();
   controlPerformer.reset();
   xTaskCreatePinnedToCore(
-    SecondaryLoop, "SecondaryLoop"  // A name just for humans
-    ,
-    3096  // This stack size can be checked & adjusted by reading the Stack Highwater
-    ,
-    NULL, 2  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-    ,
-    NULL, 0);
+      SecondaryLoop, "SecondaryLoop" // A name just for humans
+      ,
+      3096 // This stack size can be checked & adjusted by reading the Stack Highwater
+      ,
+      NULL, 2 // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+      ,
+      NULL, 0);
   debugLED.setPixelColor(SYSTEM_LED, 0, 255, 0);
   debugLED.show();
 }
 
-void SecondaryLoop(void *pvParameters) {
+void SecondaryLoop(void *pvParameters)
+{
   (void)pvParameters;
-  for (;;) {
-    if (!wifi.recieve()) {
+  for (;;)
+  {
+    if (!wifi.recieve())
+    {
       secondaryLoopPerformer.tick();
       wifi.sendTelemetry();
       sensPool.readSensors();
@@ -123,31 +128,34 @@ void SecondaryLoop(void *pvParameters) {
   }
 }
 
-void loop() {
+void loop()
+{
   sensPool.readDMP();
   sensPool.readGyro();
   motorStt.Armed = control.Arm != 0;
-  if (inputStt.Arm != motorStt.Armed) {
+  if (inputStt.Arm != motorStt.Armed)
+  {
     inputStt.Arm = motorStt.Armed;
     resetControl();
   }
-  switch (systemStt.ConnectionState) {
-    case 1:
-      inputStt.AngularVelocity.x = control.Pitch / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
-      inputStt.AngularVelocity.y = control.Roll / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
-      inputStt.AngularVelocity.z = control.Yaw / 32000.0 * paramSet.Parameters[PARAM_USER_YAW_SENSE];
+  switch (systemStt.ConnectionState)
+  {
+  case 1:
+    inputStt.AngularVelocity.x = control.Pitch / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
+    inputStt.AngularVelocity.y = control.Roll / 32000.0 * paramSet.Parameters[PARAM_USER_ROLLPITCH_SENSE];
+    inputStt.AngularVelocity.z = control.Yaw / 32000.0 * paramSet.Parameters[PARAM_USER_YAW_SENSE];
 
-      inputStt.Angle.x = pitchI.step(inputStt.AngularVelocity.x);
-      inputStt.Angle.y = rollI.step(inputStt.AngularVelocity.y);
-      inputStt.Angle.z = yawI.step(inputStt.AngularVelocity.z);
-      break;
-    case 2:
-      inputStt.AngularVelocity.x = 0;
-      inputStt.AngularVelocity.y = 0;
-      inputStt.AngularVelocity.z = 0;
-      inputStt.Angle.x = 0;
-      inputStt.Angle.y = 0;
-      break;
+    inputStt.Angle.x = pitchI.step(inputStt.AngularVelocity.x);
+    inputStt.Angle.y = rollI.step(inputStt.AngularVelocity.y);
+    inputStt.Angle.z = yawI.step(inputStt.AngularVelocity.z);
+    break;
+  case 2:
+    inputStt.AngularVelocity.x = 0;
+    inputStt.AngularVelocity.y = 0;
+    inputStt.AngularVelocity.z = 0;
+    inputStt.Angle.x = 0;
+    inputStt.Angle.y = 0;
+    break;
   }
 
   motorStt.Control.z = yawDotPID.step(sensorStt.AngularVelocity.z, yawPID.step(sensorStt.Attitude.z, inputStt.AngularVelocity.z, inputStt.Angle.z));
@@ -155,8 +163,8 @@ void loop() {
   motorStt.Control.y = rollDotPID.step(sensorStt.AngularVelocity.y, rollPID.step(sensorStt.Attitude.y, inputStt.AngularVelocity.y, inputStt.Angle.y));
   motorStt.Control.w = control.Throttle / 32000.0 * paramSet.Parameters[PARAM_USER_THROTTLE_SENSE];
 
-  //Serial.printf("pitch %f:%f ; roll %f:%f ; yaw %f:%f \n", sensorStt.AngularVelocity.x, sensorStt.Attitude.x,  sensorStt.AngularVelocity.y, sensorStt.Attitude.y,  sensorStt.AngularVelocity.z, sensorStt.Attitude.z);
-  //Serial.printf("pitch %f:%f ; roll %f:%f ; yaw %f:%f \n", inputStt.AngularVelocity.x, inputStt.Angle.x,  inputStt.AngularVelocity.y, inputStt.Angle.y,  inputStt.AngularVelocity.z, inputStt.Angle.z);
+  // Serial.printf("pitch %f:%f ; roll %f:%f ; yaw %f:%f \n", sensorStt.AngularVelocity.x, sensorStt.Attitude.x,  sensorStt.AngularVelocity.y, sensorStt.Attitude.y,  sensorStt.AngularVelocity.z, sensorStt.Attitude.z);
+  // Serial.printf("pitch %f:%f ; roll %f:%f ; yaw %f:%f \n", inputStt.AngularVelocity.x, inputStt.Angle.x,  inputStt.AngularVelocity.y, inputStt.Angle.y,  inputStt.AngularVelocity.z, inputStt.Angle.z);
   motor.update();
 
   systemStt.CycleTime = controlPerformer.average();
